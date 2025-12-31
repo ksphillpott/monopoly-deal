@@ -146,15 +146,24 @@ function connect() {
   ws = new WebSocket(protocol + '//' + location.host);
   
   ws.onopen = () => {
-    // Join as spectator
+    console.log('WebSocket connected, joining room:', roomCode);
     ws.send(JSON.stringify({ type: 'spectate', code: roomCode }));
   };
   
   ws.onmessage = (e) => {
     const data = JSON.parse(e.data);
+    console.log('Received:', data.type, data);
     
     if (data.type === 'error') {
-      alert(data.message);
+      // Show error on screen
+      document.getElementById('lobbyView').style.display = 'block';
+      document.getElementById('gameView').style.display = 'none';
+      document.getElementById('lobbyView').innerHTML = `
+        <h2 style="color:#f88">⚠️ ${data.message}</h2>
+        <p style="margin:20px 0">The game may have ended or the server restarted.</p>
+        <button onclick="location.reload()">Try Again</button>
+        <button onclick="location.href='/'">Back to Home</button>
+      `;
       return;
     }
     
@@ -166,11 +175,30 @@ function connect() {
     
     if (data.type === 'state') {
       state = data.public;
+      // Check for empty/invalid state
+      if (!state || !state.playerOrder || state.playerOrder.length === 0) {
+        console.log('Invalid state received:', state);
+        document.getElementById('lobbyView').style.display = 'block';
+        document.getElementById('gameView').style.display = 'none';
+        document.getElementById('lobbyView').innerHTML = `
+          <h2 style="color:#f88">⚠️ Game Not Found</h2>
+          <p style="margin:20px 0">The game may have ended or the server restarted.</p>
+          <button onclick="location.reload()">Reconnect</button>
+        `;
+        return;
+      }
       render();
     }
   };
   
-  ws.onclose = () => setTimeout(connect, 3000);
+  ws.onclose = () => {
+    console.log('WebSocket closed, reconnecting...');
+    setTimeout(connect, 3000);
+  };
+  
+  ws.onerror = (err) => {
+    console.error('WebSocket error:', err);
+  };
 }
 
 function render() {
@@ -240,8 +268,15 @@ function renderGame() {
   const area = document.getElementById('playersArea');
   area.innerHTML = '';
   
+  console.log('Rendering players:', state.playerOrder, state.players);
+  
   state.playerOrder.forEach(pid => {
     const p = state.players[pid];
+    if (!p) {
+      console.log('Missing player data for:', pid);
+      return;
+    }
+    console.log('Rendering player:', p.name);
     const isCurrent = pid === state.currentPlayer;
     const isWinner = state.winner === p.name;
     
@@ -310,21 +345,27 @@ function renderGame() {
 
 function getCardImg(c) {
   if (!c) return '';
-  if (c.type === 'MONEY') return `/assets/Assets_${c.value}MILLION.PNG`;
-  if (c.type === 'PROPERTY' && c.img) return `/assets/${c.img}.PNG`;
-  if (c.type === 'RENT') {
-    const s = [...c.colors].sort().join(',');
-    const m = {'ALL':'/assets/rent_rentwild.PNG','DARK_BLUE,GREEN':'/assets/rent_rentdarkbluegreen.PNG','BROWN,LIGHT_BLUE':'/assets/rent_rentlightbluebrown.PNG','ORANGE,PINK':'/assets/rent_rentpinkorange.PNG','RAILROAD,UTILITY':'/assets/rent_rentutilityrailroad.PNG','RED,YELLOW':'/assets/rent_rentyellowred.PNG'};
-    return m[s] || m['ALL'];
+  try {
+    if (c.type === 'MONEY') return `/assets/Assets_${c.value}MILLION.PNG`;
+    if (c.type === 'PROPERTY' && c.img) return `/assets/${c.img}.PNG`;
+    if (c.type === 'RENT' && c.colors) {
+      const s = [...c.colors].sort().join(',');
+      const m = {'ALL':'/assets/rent_rentwild.PNG','DARK_BLUE,GREEN':'/assets/rent_rentdarkbluegreen.PNG','BROWN,LIGHT_BLUE':'/assets/rent_rentlightbluebrown.PNG','ORANGE,PINK':'/assets/rent_rentpinkorange.PNG','RAILROAD,UTILITY':'/assets/rent_rentutilityrailroad.PNG','RED,YELLOW':'/assets/rent_rentyellowred.PNG'};
+      return m[s] || m['ALL'];
+    }
+    if (c.type === 'WILDCARD' && c.colors) {
+      const s = [...c.colors].sort().join(',');
+      const m = {'ALL':'/assets/wildcard_wild.PNG','DARK_BLUE,GREEN':'/assets/wildcard_wildgreendarkblue.PNG','GREEN,RAILROAD':'/assets/wildcard_wildgreenrailroad.PNG','BROWN,LIGHT_BLUE':'/assets/wildcard_wildlightbluebrown.PNG','LIGHT_BLUE,RAILROAD':'/assets/wildcard_wildlightbluerailroad.PNG','ORANGE,PINK':'/assets/wildcard_wildorangepink.PNG','RAILROAD,UTILITY':'/assets/wildcard_wildutilityrailroad.PNG','RED,YELLOW':'/assets/wildcard_wildyellowred.PNG'};
+      return m[s] || m['ALL'];
+    }
+    if (c.type === 'ACTION') {
+      const m = {PASS_GO:'passgo',BIRTHDAY:'birthday',DEBT_COLLECTOR:'debtcollector',SLY_DEAL:'slydeal',FORCED_DEAL:'forceddeal',DEAL_BREAKER:'dealbreaker',HOUSE:'house',HOTEL:'hotel',JUST_SAY_NO:'justsayno',DOUBLE_RENT:'double'};
+      return `/assets/${m[c.actionType] || 'passgo'}.PNG`;
+    }
+  } catch(e) {
+    console.error('getCardImg error:', e, c);
   }
-  if (c.type === 'WILDCARD') {
-    const s = [...c.colors].sort().join(',');
-    const m = {'ALL':'/assets/wildcard_wild.PNG','DARK_BLUE,GREEN':'/assets/wildcard_wildgreendarkblue.PNG','GREEN,RAILROAD':'/assets/wildcard_wildgreenrailroad.PNG','BROWN,LIGHT_BLUE':'/assets/wildcard_wildlightbluebrown.PNG','LIGHT_BLUE,RAILROAD':'/assets/wildcard_wildlightbluerailroad.PNG','ORANGE,PINK':'/assets/wildcard_wildorangepink.PNG','RAILROAD,UTILITY':'/assets/wildcard_wildutilityrailroad.PNG','RED,YELLOW':'/assets/wildcard_wildyellowred.PNG'};
-    return m[s] || m['ALL'];
-  }
-  if (c.type === 'ACTION') {
-    const m = {PASS_GO:'passgo',BIRTHDAY:'birthday',DEBT_COLLECTOR:'debtcollector',SLY_DEAL:'slydeal',FORCED_DEAL:'forceddeal',DEAL_BREAKER:'dealbreaker',HOUSE:'house',HOTEL:'hotel',JUST_SAY_NO:'justsayno',DOUBLE_RENT:'double'};
-    return `/assets/${m[c.actionType] || 'passgo'}.PNG`;
+  return '';
   }
   return '';
 }

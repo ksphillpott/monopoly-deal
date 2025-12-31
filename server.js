@@ -1009,7 +1009,10 @@ function getPublicState(room) {
         type: c.type,
         name: c.name || (c.type === 'WILDCARD' ? 'Wild' : color),
         isWild: c.type === 'WILDCARD',
-        value: c.value
+        value: c.value,
+        img: c.img,
+        colors: c.colors,
+        currentColor: c.currentColor
       }));
       props[color] = {
         count: p.properties[color].cards.length,
@@ -1329,7 +1332,23 @@ wss.on('connection', (ws) => {
   });
 });
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
+});
+
+// Self-ping to prevent Render from sleeping (every 14 minutes)
+const RENDER_URL = process.env.RENDER_EXTERNAL_URL;
+if (RENDER_URL) {
+  setInterval(() => {
+    fetch(`${RENDER_URL}/health`).catch(() => {});
+  }, 14 * 60 * 1000); // 14 minutes
+}
+
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Monopoly Deal server running on port ${PORT}`);
+  if (RENDER_URL) {
+    console.log(`Keep-alive enabled for: ${RENDER_URL}`);
+  }
 });
