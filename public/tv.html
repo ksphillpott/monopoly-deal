@@ -71,8 +71,35 @@ body {
   backdrop-filter: blur(20px);
   border: 1px solid var(--border-glass);
   border-radius: 24px;
-  padding: 50px 70px;
+  padding: 40px 50px;
   box-shadow: var(--shadow-lg);
+}
+
+.join-row {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.join-info {
+  text-align: center;
+}
+
+.join-divider {
+  color: var(--text-secondary);
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.qr-code {
+  background: white;
+  padding: 12px;
+  border-radius: 12px;
+  margin-top: 12px;
+}
+
+.qr-code canvas {
+  display: block;
 }
 
 .join-label {
@@ -526,10 +553,19 @@ body {
   <div class="logo">MONOPOLY DEAL</div>
   <div class="tagline">The Fast-Dealing Property Trading Game</div>
   <div class="join-card">
-    <div class="join-label">Join at</div>
-    <div class="join-url" id="joinUrl">loading...</div>
-    <div class="join-label">Room Code</div>
-    <div class="code-display" id="roomCodeBig">····</div>
+    <div class="join-row">
+      <div class="join-info">
+        <div class="join-label">Scan to join</div>
+        <div id="qrcode" class="qr-code"></div>
+      </div>
+      <div class="join-divider">or</div>
+      <div class="join-info">
+        <div class="join-label">Go to</div>
+        <div class="join-url" id="joinUrl">loading...</div>
+        <div class="join-label" style="margin-top:20px">Room Code</div>
+        <div class="code-display" id="roomCodeBig">····</div>
+      </div>
+    </div>
   </div>
   <div class="status-area">
     <div class="status-text" id="statusText">Creating game...</div>
@@ -576,12 +612,19 @@ body {
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 const COLORS={BROWN:'prop-brown',LIGHT_BLUE:'prop-light-blue',PINK:'prop-pink',ORANGE:'prop-orange',RED:'prop-red',YELLOW:'prop-yellow',GREEN:'prop-green',DARK_BLUE:'prop-dark-blue',RAILROAD:'prop-railroad',UTILITY:'prop-utility'};
 const SET_SIZES={BROWN:2,DARK_BLUE:2,UTILITY:2,RAILROAD:4,LIGHT_BLUE:3,PINK:3,ORANGE:3,RED:3,YELLOW:3,GREEN:3};
-let ws,state=null,roomCode='';
+let ws,state=null,roomCode='',qr=null;
 
 window.onload=()=>{document.getElementById('joinUrl').textContent=location.host;connect()};
+
+function generateQR(){
+  const url=location.protocol+'//'+location.host+'#'+roomCode;
+  document.getElementById('qrcode').innerHTML='';
+  qr=new QRCode(document.getElementById('qrcode'),{text:url,width:150,height:150,colorDark:'#0f172a',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.L});
+}
 
 function connect(){
   const protocol=location.protocol==='https:'?'wss:':'ws:';
@@ -592,8 +635,8 @@ function connect(){
   };
   ws.onmessage=(e)=>{
     const data=JSON.parse(e.data);
-    if(data.type==='created'){roomCode=data.code;location.hash=roomCode;updateRoomCode();document.getElementById('statusText').textContent='Waiting for players to join...'}
-    if(data.type==='spectating'){updateRoomCode();document.getElementById('statusText').textContent='Spectating game...'}
+    if(data.type==='created'){roomCode=data.code;location.hash=roomCode;updateRoomCode();generateQR();document.getElementById('statusText').textContent='Waiting for players to join...'}
+    if(data.type==='spectating'){updateRoomCode();generateQR();document.getElementById('statusText').textContent='Spectating game...'}
     if(data.type==='error'){document.getElementById('statusText').textContent='⚠️ '+data.message;document.getElementById('statusText').style.color='#ef4444'}
     if(data.type==='state'){state=data.public;render()}
   };

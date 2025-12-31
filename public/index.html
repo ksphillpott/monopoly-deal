@@ -119,14 +119,20 @@ body{font-family:'Inter',sans-serif;background:var(--bg);min-height:100vh;color:
 <script>
 const COLORS={BROWN:'c-brown',LIGHT_BLUE:'c-light-blue',PINK:'c-pink',ORANGE:'c-orange',RED:'c-red',YELLOW:'c-yellow',GREEN:'c-green',DARK_BLUE:'c-dark-blue',RAILROAD:'c-railroad',UTILITY:'c-utility'};
 const SET_SIZES={BROWN:2,DARK_BLUE:2,UTILITY:2,RAILROAD:4,LIGHT_BLUE:3,PINK:3,ORANGE:3,RED:3,YELLOW:3,GREEN:3};
-let ws,myId=null,roomCode=null,state=null,priv=null,selectedCard=null,paymentSel={bank:[],props:[]};
+let ws,myId=null,roomCode=null,state=null,priv=null,selectedCard=null,paymentSel={bank:[],props:[]},autoJoinCode=null;
+
+// Check for room code in URL hash (from QR code)
+if(location.hash&&location.hash.length>1){autoJoinCode=location.hash.substring(1).toUpperCase()}
 
 function connect(){const protocol=location.protocol==='https:'?'wss:':'ws:';ws=new WebSocket(protocol+'//'+location.host);
+ws.onopen=()=>{if(autoJoinCode){const name=document.getElementById('playerName').value.trim()||'Player';send({type:'join',name:name,code:autoJoinCode});autoJoinCode=null}};
 ws.onmessage=e=>{const d=JSON.parse(e.data);
 if(d.type==='created'||d.type==='joined'){myId=d.playerId;roomCode=d.code;document.getElementById('lobbyCode').textContent=roomCode;showScreen('lobbyScreen')}
-if(d.type==='error'){document.getElementById('errorMsg').textContent=d.message;alert(d.message)}
+if(d.type==='error'){document.getElementById('errorMsg').textContent=d.message;alert(d.message);showScreen('homeScreen')}
 if(d.type==='state'){state=d.public;priv=d.private;myId=d.playerId;if(state.state==='lobby'){renderLobby();showScreen('lobbyScreen')}else{renderGame();showScreen('gameScreen')}}};
 ws.onclose=()=>setTimeout(connect,2000)}
+
+window.onload=()=>{if(autoJoinCode){document.getElementById('roomCodeInput').value=autoJoinCode}connect()}
 
 function send(d){if(ws&&ws.readyState===1)ws.send(JSON.stringify(d))}
 function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active')}
