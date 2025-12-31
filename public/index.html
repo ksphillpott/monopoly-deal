@@ -203,13 +203,13 @@ function getActionUI(c,i){let html='';
 if(c.actionType==='PASS_GO')html=`<button class="action-btn" onclick="playCard(${i},'action')">🎯 Draw 2 Cards</button>`;
 else if(c.actionType==='BIRTHDAY')html=`<button class="action-btn" onclick="playCard(${i},'action')">🎂 Collect $2M from all</button>`;
 else if(c.actionType==='DEBT_COLLECTOR'){html='<div style="margin:10px 0">Collect $5M from:</div>';
-state.playerOrder.forEach(pid=>{if(pid!==myId){const p=state.players[pid];html+=`<button class="player-btn" onclick="playCard(${i},'action',{targetId:'${pid}'})">${p.name}</button>`}})}
+state.playerOrder.forEach(pid=>{if(pid!==myId){const p=state.players[pid];if(p.name==='TV-Host')return;html+=`<button class="player-btn" onclick="playCard(${i},'action',{targetId:'${pid}'})">${p.name}</button>`}})}
 else if(c.actionType==='SLY_DEAL'){html='<div style="margin:10px 0">Steal property from:</div>';
-state.playerOrder.forEach(pid=>{if(pid!==myId){const p=state.players[pid];for(const col in p.properties){if(!p.properties[col].complete){html+=`<button class="player-btn" onclick="playCard(${i},'action',{targetId:'${pid}',color:'${col}'})">${p.name} - ${col.replace('_',' ')}</button>`}}}})}
+state.playerOrder.forEach(pid=>{if(pid!==myId){const p=state.players[pid];if(p.name==='TV-Host')return;for(const col in p.properties){if(!p.properties[col].complete){html+=`<button class="player-btn" onclick="playCard(${i},'action',{targetId:'${pid}',color:'${col}'})">${p.name} - ${col.replace('_',' ')}</button>`}}}})}
 else if(c.actionType==='FORCED_DEAL'){html='<div style="margin:10px 0">Swap properties:</div>';
-state.playerOrder.forEach(pid=>{if(pid!==myId){const p=state.players[pid];for(const theirCol in p.properties){if(!p.properties[theirCol].complete){for(const yourCol in priv.properties){html+=`<button class="player-btn" onclick="playCard(${i},'action',{targetId:'${pid}',theirColor:'${theirCol}',yourColor:'${yourCol}'})">${p.name}: ${theirCol.replace('_',' ')} ↔ ${yourCol.replace('_',' ')}</button>`}}}}})}
+state.playerOrder.forEach(pid=>{if(pid!==myId){const p=state.players[pid];if(p.name==='TV-Host')return;for(const theirCol in p.properties){if(!p.properties[theirCol].complete){for(const yourCol in priv.properties){html+=`<button class="player-btn" onclick="playCard(${i},'action',{targetId:'${pid}',theirColor:'${theirCol}',yourColor:'${yourCol}'})">${p.name}: ${theirCol.replace('_',' ')} ↔ ${yourCol.replace('_',' ')}</button>`}}}}})}
 else if(c.actionType==='DEAL_BREAKER'){html='<div style="margin:10px 0">Steal complete set:</div>';
-state.playerOrder.forEach(pid=>{if(pid!==myId){const p=state.players[pid];for(const col in p.properties){if(p.properties[col].complete){html+=`<button class="player-btn" onclick="playCard(${i},'action',{targetId:'${pid}',color:'${col}'})">${p.name} - ${col.replace('_',' ')}</button>`}}}})}
+state.playerOrder.forEach(pid=>{if(pid!==myId){const p=state.players[pid];if(p.name==='TV-Host')return;for(const col in p.properties){if(p.properties[col].complete){html+=`<button class="player-btn" onclick="playCard(${i},'action',{targetId:'${pid}',color:'${col}'})">${p.name} - ${col.replace('_',' ')}</button>`}}}})}
 else if(c.actionType==='HOUSE'){html='<div style="margin:10px 0">Add house to:</div><div class="color-options">';
 for(const col in priv.properties){if(col!=='RAILROAD'&&col!=='UTILITY'){const p=priv.properties[col];const ss=SET_SIZES[col]||3;
 if(p.cards.length>=ss&&!p.house){html+=`<div class="color-btn ${COLORS[col]}" onclick="playCard(${i},'action',{color:'${col}'})">${col.replace('_',' ')}</div>`}}}html+='</div>'}
@@ -222,7 +222,7 @@ function getRentUI(c,i){let html='';const myProps=priv.properties||{};
 const validCols=c.colors[0]==='ALL'?Object.keys(myProps):c.colors.filter(col=>myProps[col]&&myProps[col].cards.length>0);
 if(validCols.length===0)return'<div style="color:var(--red)">No matching properties!</div>';
 html+='<div style="margin:10px 0">Charge rent on:</div><div class="color-options">';
-if(c.colors[0]==='ALL'){validCols.forEach(col=>{state.playerOrder.forEach(pid=>{if(pid!==myId){const p=state.players[pid];
+if(c.colors[0]==='ALL'){validCols.forEach(col=>{state.playerOrder.forEach(pid=>{if(pid!==myId){const p=state.players[pid];if(p.name==='TV-Host')return;
 html+=`<div class="color-btn ${COLORS[col]}" onclick="playCard(${i},'action',{color:'${col}',targetId:'${pid}'})">${col.replace('_',' ')} → ${p.name}</div>`}})})}
 else{validCols.forEach(col=>{html+=`<div class="color-btn ${COLORS[col]}" onclick="playCard(${i},'action',{color:'${col}'})">${col.replace('_',' ')}</div>`})}
 return html+'</div>'}

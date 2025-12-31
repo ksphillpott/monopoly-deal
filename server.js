@@ -433,7 +433,10 @@ function executeAction(room, player, card, cardIndex, targetData) {
       return { success: true };
       
     case 'BIRTHDAY':
-      const bdayTargets = room.playerOrder.filter(pid => pid !== player.id);
+      const bdayTargets = room.playerOrder.filter(pid => {
+        const p = room.players.get(pid);
+        return pid !== player.id && !p.isTVHost;
+      });
       room.pendingAction = {
         type: 'BIRTHDAY',
         from: player.id,
@@ -503,7 +506,10 @@ function executeRent(room, player, card, cardIndex, targetData) {
     if (!targetData?.targetId) return { error: 'Wild rent requires target' };
     targetPlayers = [targetData.targetId];
   } else {
-    targetPlayers = room.playerOrder.filter(pid => pid !== player.id);
+    targetPlayers = room.playerOrder.filter(pid => {
+      const p = room.players.get(pid);
+      return pid !== player.id && !p.isTVHost;
+    });
   }
   
   // Handle double rent

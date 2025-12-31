@@ -96,9 +96,10 @@ body {
   padding: 12px;
   border-radius: 12px;
   margin-top: 12px;
+  display: inline-block;
 }
 
-.qr-code canvas {
+.qr-code svg {
   display: block;
 }
 
@@ -612,18 +613,20 @@ body {
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <script>
 const COLORS={BROWN:'prop-brown',LIGHT_BLUE:'prop-light-blue',PINK:'prop-pink',ORANGE:'prop-orange',RED:'prop-red',YELLOW:'prop-yellow',GREEN:'prop-green',DARK_BLUE:'prop-dark-blue',RAILROAD:'prop-railroad',UTILITY:'prop-utility'};
 const SET_SIZES={BROWN:2,DARK_BLUE:2,UTILITY:2,RAILROAD:4,LIGHT_BLUE:3,PINK:3,ORANGE:3,RED:3,YELLOW:3,GREEN:3};
-let ws,state=null,roomCode='',qr=null;
+let ws,state=null,roomCode='';
 
 window.onload=()=>{document.getElementById('joinUrl').textContent=location.host;connect()};
 
 function generateQR(){
-  const url=location.protocol+'//'+location.host+'#'+roomCode;
-  document.getElementById('qrcode').innerHTML='';
-  qr=new QRCode(document.getElementById('qrcode'),{text:url,width:150,height:150,colorDark:'#0f172a',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.L});
+  const url=location.protocol+'//'+location.host+'/#'+roomCode;
+  const qr=qrcode(0,'L');
+  qr.addData(url);
+  qr.make();
+  document.getElementById('qrcode').innerHTML=qr.createSvgTag(5,0);
 }
 
 function connect(){
