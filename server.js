@@ -262,15 +262,14 @@ function startGame(room) {
   room.winner = null;
   room.actionLog = [];
   
-  // Find first non-TV-Host player index
+  // Randomize player order (keeping TV-Host at the end if present)
+  const realPlayers = room.playerOrder.filter(pid => !room.players.get(pid).isTVHost);
+  const tvHost = room.playerOrder.filter(pid => room.players.get(pid).isTVHost);
+  shuffle(realPlayers);
+  room.playerOrder = [...realPlayers, ...tvHost];
+  
+  // First player is always index 0 now (first real player after shuffle)
   room.currentPlayerIndex = 0;
-  for (let i = 0; i < room.playerOrder.length; i++) {
-    const p = room.players.get(room.playerOrder[i]);
-    if (!p.isTVHost) {
-      room.currentPlayerIndex = i;
-      break;
-    }
-  }
   
   // Deal 5 cards to each real player
   room.players.forEach(player => {
