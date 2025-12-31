@@ -188,16 +188,18 @@ function createRoom(hostWs, hostName) {
   };
   
   const playerId = generatePlayerId();
+  const isTVHost = hostName === 'TV-Host';
   room.players.set(playerId, {
     id: playerId,
     name: hostName,
     ws: hostWs,
-    ready: false,
+    ready: isTVHost, // TV-Host auto-readies
     hand: [],
     bank: [],
     properties: {},
     pendingWildcards: null,
-    isHost: true
+    isHost: true,
+    isTVHost: isTVHost
   });
   room.playerOrder.push(playerId);
   
@@ -239,43 +241,61 @@ function joinRoom(code, ws, playerName) {
 }
 
 function startGame(room) {
-  if (room.players.size < 2) return false;
-  
+  // Count real players (non-TV-Host)
+  let realPlayerCount = 0;
   let allReady = true;
-  room.players.forEach(p => { if (!p.ready) allReady = false; });
+  room.players.forEach(p => { 
+    if (!p.isTVHost) {
+      realPlayerCount++;
+      if (!p.ready) allReady = false;
+    }
+  });
+  
+  if (realPlayerCount < 2) return false;
   if (!allReady) return false;
   
   room.state = 'playing';
   room.deck = createDeck();
   room.discard = [];
-  room.currentPlayerIndex = 0;
   room.cardsPlayedThisTurn = 0;
   room.pendingAction = null;
   room.winner = null;
   room.actionLog = [];
   
-  // Deal 5 cards to each player
+  // Find first non-TV-Host player index
+  room.currentPlayerIndex = 0;
+  for (let i = 0; i < room.playerOrder.length; i++) {
+    const p = room.players.get(room.playerOrder[i]);
+    if (!p.isTVHost) {
+      room.currentPlayerIndex = i;
+      break;
+    }
+  }
+  
+  // Deal 5 cards to each real player
   room.players.forEach(player => {
     player.hand = [];
     player.bank = [];
     player.properties = {};
     player.pendingWildcards = null;
-    for (let i = 0; i < 5; i++) {
-      if (room.deck.length > 0) {
-        player.hand.push(room.deck.pop());
+    if (!player.isTVHost) {
+      for (let i = 0; i < 5; i++) {
+        if (room.deck.length > 0) {
+          player.hand.push(room.deck.pop());
+        }
       }
     }
   });
   
   // Draw 2 for first player
-  const firstPlayer = room.players.get(room.playerOrder[0]);
+  const firstPlayer = room.players.get(room.playerOrder[room.currentPlayerIndex]);
   for (let i = 0; i < 2; i++) {
     if (room.deck.length > 0) {
       firstPlayer.hand.push(room.deck.pop());
     }
   }
   
-  log(room, 'GAME_START', { players: room.players.size });
+  log(room, 'GAME_START', { players: realPlayerCount });
   log(room, 'TURN', { name: firstPlayer.name });
   
   return true;
@@ -941,8 +961,16 @@ function endTurn(room, playerId) {
     log(room, 'DISCARD', { name: current.name, card: card.name || card.type });
   }
   
-  // Next player
-  room.currentPlayerIndex = (room.currentPlayerIndex + 1) % room.playerOrder.length;
+  // Next player - skip TV-Host
+  let nextIndex = (room.currentPlayerIndex + 1) % room.playerOrder.length;
+  let attempts = 0;
+  while (attempts < room.playerOrder.length) {
+    const nextP = room.players.get(room.playerOrder[nextIndex]);
+    if (!nextP.isTVHost) break;
+    nextIndex = (nextIndex + 1) % room.playerOrder.length;
+    attempts++;
+  }
+  room.currentPlayerIndex = nextIndex;
   room.cardsPlayedThisTurn = 0;
   
   // Draw 2
