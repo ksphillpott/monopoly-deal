@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monopoly Deal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-card: rgba(30, 41, 59, 0.8);
+  --bg-glass: rgba(255, 255, 255, 0.05);
+  --border-glass: rgba(255, 255, 255, 0.1);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --accent-gold: #fbbf24;
+  --accent-green: #22c55e;
+  --accent-blue: #3b82f6;
+  --accent-red: #ef4444;
+  --accent-purple: #a855f7;
+  --shadow-lg: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 40px rgba(251, 191, 36, 0.3);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-primary);
+  background-image: 
+    radial-gradient(ellipse at top, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom, rgba(168, 85, 247, 0.1) 0%, transparent 50%);
+  min-height: 100vh;
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+.splash {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  text-align: center;
+  padding: 20px;
+}
+
+.logo {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 4.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent-gold) 0%, #f59e0b 50%, var(--accent-gold) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+  letter-spacing: -2px;
+}
+
+.tagline {
+  font-size: 1.25rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-bottom: 50px;
+}
+
+.join-card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  border-radius: 24px;
+  padding: 40px 50px;
+  box-shadow: var(--shadow-lg);
+}
+
+.join-row {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+}
+
+.join-info {
+  text-align: center;
+}
+
+.join-divider {
+  color: var(--text-secondary);
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.qr-code {
+  background: white;
+  padding: 12px;
+  border-radius: 12px;
+  margin-top: 12px;
+  display: inline-block;
+}
+
+.qr-code svg {
+  display: block;
+}
+
+.join-label {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.join-url {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 1.75rem;
+  color: var(--accent-blue);
+  font-weight: 600;
+  margin-bottom: 40px;
+}
+
+.code-display {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 7rem;
+  font-weight: 700;
+  letter-spacing: 20px;
+  color: var(--text-primary);
+  text-shadow: var(--shadow-glow);
+  margin: 20px 0;
+  padding-left: 20px;
+}
+
+.status-area { margin-top: 50px; }
+
+.status-text {
+  font-size: 1.125rem;
+  color: var(--text-secondary);
+  margin-bottom: 25px;
+}
+
+.players-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  max-width: 700px;
+}
+
+.player-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-glass);
+  padding: 12px 24px;
+  border-radius: 100px;
+  font-weight: 500;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.player-chip.ready {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: var(--accent-green);
+}
+
+.player-chip .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+}
+
+.player-chip.ready .dot {
+  background: var(--accent-green);
+  box-shadow: 0 0 10px var(--accent-green);
+}
+
+.start-hint {
+  margin-top: 35px;
+  padding: 16px 28px;
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 12px;
+  color: var(--accent-gold);
+  font-weight: 500;
+  animation: gentle-pulse 2s ease-in-out infinite;
+}
+
+@keyframes gentle-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.start-btn {
+  margin-top: 35px;
+  padding: 20px 60px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: 'Space Grotesk', sans-serif;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, var(--accent-green), #16a34a);
+  border: none;
+  border-radius: 100px;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 40px rgba(34, 197, 94, 0.4);
+}
+
+.start-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 50px rgba(34, 197, 94, 0.5);
+}
+
+.start-btn:active {
+  transform: translateY(0);
+}
+
+.game-screen {
+  display: none;
+  height: 100vh;
+  padding: 20px;
+}
+
+.game-screen.active { display: block; }
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-glass);
+  border-radius: 16px;
+  margin-bottom: 20px;
+}
+
+.top-code {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--accent-gold);
+  letter-spacing: 4px;
+}
+
+.turn-display { text-align: right; }
+
+.turn-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.turn-name.active { color: var(--accent-green); }
+
+.turn-plays {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.action-banner {
+  display: none;
+  background: linear-gradient(135deg, var(--accent-red), #dc2626);
+  padding: 18px 30px;
+  border-radius: 16px;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  animation: banner-pulse 2s ease-in-out infinite;
+}
+
+@keyframes banner-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.01); }
+}
+
+.game-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 20px;
+  height: calc(100vh - 130px);
+}
+
+.players-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 16px;
+  align-content: start;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+.player-card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-glass);
+  border-radius: 20px;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.player-card.current {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 30px rgba(251, 191, 36, 0.2);
+}
+
+.player-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.player-name {
+  font-size: 1.375rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.player-name .indicator {
+  width: 12px;
+  height: 12px;
+  background: var(--accent-green);
+  border-radius: 50%;
+  box-shadow: 0 0 12px var(--accent-green);
+  animation: blink 1s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.sets-badge {
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 100px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-glass);
+}
+
+.sets-badge.close {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+.sets-badge.winning {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+}
+
+.player-stats {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 16px;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+.stat-value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.properties-area {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.prop-set {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 10px;
+  text-align: center;
+  border: 1px solid transparent;
+}
+
+.prop-set.complete {
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 15px rgba(251, 191, 36, 0.2);
+}
+
+.prop-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  color: #fff;
+}
+
+.prop-cards {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.prop-card-img {
+  width: 48px;
+  height: 67px;
+  border-radius: 6px;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--bg-card);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+.prop-extras { margin-top: 6px; font-size: 1rem; }
+.no-props { color: var(--text-secondary); font-style: italic; padding: 10px; }
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebar-card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-glass);
+  border-radius: 20px;
+  padding: 20px;
+  text-align: center;
+}
+
+.sidebar-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.deck-count {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 4rem;
+  font-weight: 700;
+  color: var(--accent-green);
+  line-height: 1;
+}
+
+.deck-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.last-card-img {
+  width: 110px;
+  height: 154px;
+  border-radius: 10px;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--bg-secondary);
+  margin: 12px auto;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+}
+
+.last-info { font-size: 0.9375rem; color: var(--text-secondary); }
+.last-info strong { color: var(--text-primary); }
+
+.log-card { flex: 1; min-height: 0; }
+.log-entries { text-align: left; max-height: 180px; overflow-y: auto; }
+.log-entry {
+  font-size: 0.8125rem;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+}
+
+.winner-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(10px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.winner-overlay.active { display: flex; }
+
+.winner-content {
+  text-align: center;
+  animation: winner-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes winner-pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.winner-emoji { font-size: 5rem; margin-bottom: 20px; }
+
+.winner-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 4rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent-gold), #f59e0b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 10px;
+}
+
+.winner-name { font-size: 2.5rem; font-weight: 600; margin-bottom: 40px; }
+
+.winner-btn {
+  padding: 18px 48px;
+  font-size: 1.125rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 100px;
+  background: linear-gradient(135deg, var(--accent-green), #16a34a);
+  color: white;
+  cursor: pointer;
+}
+
+.prop-brown { background: #92400e; }
+.prop-light-blue { background: #0ea5e9; }
+.prop-pink { background: #ec4899; }
+.prop-orange { background: #f97316; }
+.prop-red { background: #ef4444; }
+.prop-yellow { background: #eab308; }
+.prop-green { background: #22c55e; }
+.prop-dark-blue { background: #1d4ed8; }
+.prop-railroad { background: #6b7280; }
+.prop-utility { background: #8b5cf6; }
+</style>
+</head>
+<body>
+
+<div class="splash" id="splashScreen">
+  <div class="logo">MONOPOLY DEAL</div>
+  <div class="tagline">The Fast-Dealing Property Trading Game</div>
+  <div class="join-card">
+    <div class="join-row">
+      <div class="join-info">
+        <div class="join-label">Scan to join</div>
+        <div id="qrcode" class="qr-code"></div>
+      </div>
+      <div class="join-divider">or</div>
+      <div class="join-info">
+        <div class="join-label">Go to</div>
+        <div class="join-url" id="joinUrl">loading...</div>
+        <div class="join-label" style="margin-top:20px">Room Code</div>
+        <div class="code-display" id="roomCodeBig">····</div>
+      </div>
+    </div>
+  </div>
+  <div class="status-area">
+    <div class="status-text" id="statusText">Creating game...</div>
+    <div class="players-chips" id="playersChips"></div>
+  </div>
+</div>
+
+<div class="game-screen" id="gameScreen">
+  <div class="top-bar">
+    <div class="top-code" id="topCode">····</div>
+    <div class="turn-display">
+      <div class="turn-name" id="turnName">Waiting...</div>
+      <div class="turn-plays" id="turnPlays"></div>
+    </div>
+  </div>
+  <div class="action-banner" id="actionBanner"></div>
+  <div class="game-layout">
+    <div class="players-grid" id="playersGrid"></div>
+    <div class="sidebar">
+      <div class="sidebar-card">
+        <div class="sidebar-title">Deck</div>
+        <div class="deck-count" id="deckCount">0</div>
+        <div class="deck-label">cards left</div>
+      </div>
+      <div class="sidebar-card">
+        <div class="sidebar-title">Last Played</div>
+        <div class="last-card-img" id="lastCard"></div>
+        <div class="last-info" id="lastInfo"></div>
+      </div>
+      <div class="sidebar-card log-card">
+        <div class="sidebar-title">Game Log</div>
+        <div class="log-entries" id="gameLog"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="winner-overlay" id="winnerOverlay">
+  <div class="winner-content">
+    <div class="winner-emoji">🏆</div>
+    <div class="winner-title">WINNER!</div>
+    <div class="winner-name" id="winnerName"></div>
+    <button class="winner-btn" onclick="location.reload()">Play Again</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<script>
+const COLORS={BROWN:'prop-brown',LIGHT_BLUE:'prop-light-blue',PINK:'prop-pink',ORANGE:'prop-orange',RED:'prop-red',YELLOW:'prop-yellow',GREEN:'prop-green',DARK_BLUE:'prop-dark-blue',RAILROAD:'prop-railroad',UTILITY:'prop-utility'};
+const SET_SIZES={BROWN:2,DARK_BLUE:2,UTILITY:2,RAILROAD:4,LIGHT_BLUE:3,PINK:3,ORANGE:3,RED:3,YELLOW:3,GREEN:3};
+let ws,state=null,roomCode='';
+
+window.onload=()=>{document.getElementById('joinUrl').textContent=location.host;connect()};
+
+function generateQR(){
+  const url=location.protocol+'//'+location.host+'/#'+roomCode;
+  const qr=qrcode(0,'L');
+  qr.addData(url);
+  qr.make();
+  document.getElementById('qrcode').innerHTML=qr.createSvgTag(5,0);
+}
+
+function connect(){
+  const protocol=location.protocol==='https:'?'wss:':'ws:';
+  ws=new WebSocket(protocol+'//'+location.host);
+  ws.onopen=()=>{
+    if(location.hash&&location.hash.length>1){roomCode=location.hash.substring(1).toUpperCase();ws.send(JSON.stringify({type:'spectate',code:roomCode}))}
+    else{ws.send(JSON.stringify({type:'create',name:'TV-Host'}))}
+  };
+  ws.onmessage=(e)=>{
+    const data=JSON.parse(e.data);
+    if(data.type==='created'){roomCode=data.code;location.hash=roomCode;updateRoomCode();generateQR();document.getElementById('statusText').textContent='Waiting for players to join...'}
+    if(data.type==='spectating'){updateRoomCode();generateQR();document.getElementById('statusText').textContent='Spectating game...'}
+    if(data.type==='error'){document.getElementById('statusText').textContent='⚠️ '+data.message;document.getElementById('statusText').style.color='#ef4444'}
+    if(data.type==='state'){state=data.public;render()}
+  };
+  ws.onclose=()=>setTimeout(connect,3000);
+}
+
+function updateRoomCode(){document.getElementById('roomCodeBig').textContent=roomCode;document.getElementById('topCode').textContent=roomCode}
+
+function render(){
+  if(!state)return;
+  if(state.state==='gameover'&&state.winner){document.getElementById('winnerName').textContent=state.winner;document.getElementById('winnerOverlay').classList.add('active');return}
+  document.getElementById('winnerOverlay').classList.remove('active');
+  if(state.state==='lobby'){document.getElementById('splashScreen').style.display='flex';document.getElementById('gameScreen').classList.remove('active');renderLobby()}
+  else{document.getElementById('splashScreen').style.display='none';document.getElementById('gameScreen').classList.add('active');renderGame()}
+}
+
+function renderLobby(){
+  const chips=document.getElementById('playersChips');chips.innerHTML='';
+  let allReady=true,count=0;
+  state.playerOrder.forEach(pid=>{const p=state.players[pid];if(p.name==='TV-Host')return;count++;
+    const chip=document.createElement('div');chip.className='player-chip'+(p.ready?' ready':'');
+    chip.innerHTML=`<span class="dot"></span><span>${p.name}</span>`;chips.appendChild(chip);if(!p.ready)allReady=false});
+  document.getElementById('statusText').textContent=count===0?'Waiting for players to join...':`${count} player${count>1?'s':''} in lobby`;
+  
+  // Auto-start when 2+ players and all ready
+  if(count>=2&&allReady){
+    document.getElementById('statusText').textContent='Starting game...';
+    send({type:'start'});
+  }
+}
+
+function send(d){if(ws&&ws.readyState===1)ws.send(JSON.stringify(d))}
+
+function renderGame(){
+  document.getElementById('topCode').textContent=roomCode;
+  const turnName=document.getElementById('turnName');
+  turnName.textContent=state.currentPlayerName+"'s Turn";
+  turnName.className='turn-name'+(state.currentPlayerName!=='TV-Host'?' active':'');
+  document.getElementById('turnPlays').textContent=`${3-state.cardsPlayed} plays remaining`;
+  
+  const banner=document.getElementById('actionBanner');
+  if(state.pendingAction){
+    const t=state.pendingAction.type,from=state.players[state.pendingAction.from]?.name||'Someone',amt=state.pendingAction.amount;
+    if(t==='RENT')banner.textContent=`💰 ${from} is charging $${amt}M rent!`;
+    else if(t==='BIRTHDAY')banner.textContent=`🎂 It's ${from}'s birthday! Everyone pays $${amt}M`;
+    else if(t==='DEBT')banner.textContent=`💳 ${from} is collecting $${amt}M debt`;
+    else if(t==='DEAL_BREAKER')banner.textContent=`💥 ${from} used Deal Breaker!`;
+    else if(t==='SLY_DEAL')banner.textContent=`🤫 ${from} used Sly Deal!`;
+    else if(t==='FORCED_DEAL')banner.textContent=`🔄 ${from} used Forced Deal!`;
+    else banner.textContent=`⚡ ${t}`;
+    banner.style.display='block';
+  }else{banner.style.display='none'}
+  
+  const grid=document.getElementById('playersGrid');grid.innerHTML='';
+  state.playerOrder.forEach(pid=>{
+    const p=state.players[pid];if(p.name==='TV-Host')return;
+    const isCurrent=pid===state.currentPlayer;
+    const setsClass=p.completeSets>=3?'winning':p.completeSets>=2?'close':'';
+    let propsHtml='';
+    for(const color in p.properties){
+      const prop=p.properties[color],setSize=SET_SIZES[color]||3,complete=prop.count>=setSize;
+      let cardsHtml='';if(prop.cards){prop.cards.forEach(c=>{cardsHtml+=`<div class="prop-card-img" style="background-image:url('${getCardImg(c)}')"></div>`})}
+      let extras='';if(prop.house)extras+='🏠';if(prop.hotel)extras+='🏨';
+      propsHtml+=`<div class="prop-set ${complete?'complete':''}"><div class="prop-label ${COLORS[color]}">${color.replace('_',' ')}</div><div class="prop-cards">${cardsHtml}</div>${extras?`<div class="prop-extras">${extras}</div>`:''}</div>`;
+    }
+    const card=document.createElement('div');card.className='player-card'+(isCurrent?' current':'');
+    card.innerHTML=`<div class="player-header"><div class="player-name">${isCurrent?'<span class="indicator"></span>':''}${p.name}</div><div class="sets-badge ${setsClass}">${p.completeSets}/3 Sets</div></div><div class="player-stats"><div class="stat"><span>🃏</span><span class="stat-value">${p.handCount}</span> cards</div><div class="stat"><span>💵</span><span class="stat-value">$${p.bankValue}M</span></div></div><div class="properties-area">${propsHtml||'<div class="no-props">No properties yet</div>'}</div>`;
+    grid.appendChild(card);
+  });
+  
+  document.getElementById('deckCount').textContent=state.deckCount;
+  if(state.lastPlayedCard){document.getElementById('lastCard').style.backgroundImage=`url('${getCardImg(state.lastPlayedCard)}')`;
+    const action=state.lastPlayedType==='bank'?'banked':state.lastPlayedType==='discarded'?'discarded':'played';
+    document.getElementById('lastInfo').innerHTML=`<strong>${state.lastPlayedBy}</strong> ${action}`}
+  document.getElementById('gameLog').innerHTML=state.actionLog.slice(-10).map(l=>`<div class="log-entry">${l}</div>`).join('');
+}
+
+function getCardImg(c){
+  if(!c)return'';try{
+    if(c.type==='MONEY')return`/assets/Assets_${c.value}MILLION.PNG`;
+    if(c.type==='PROPERTY'&&c.img)return`/assets/${c.img}.PNG`;
+    if(c.type==='RENT'&&c.colors){const s=[...c.colors].sort().join(',');const m={'ALL':'/assets/rent_rentwild.PNG','DARK_BLUE,GREEN':'/assets/rent_rentdarkbluegreen.PNG','BROWN,LIGHT_BLUE':'/assets/rent_rentlightbluebrown.PNG','ORANGE,PINK':'/assets/rent_rentpinkorange.PNG','RAILROAD,UTILITY':'/assets/rent_rentutilityrailroad.PNG','RED,YELLOW':'/assets/rent_rentyellowred.PNG'};return m[s]||m['ALL']}
+    if(c.type==='WILDCARD'&&c.colors){const s=[...c.colors].sort().join(',');const m={'ALL':'/assets/wildcard_wild.PNG','DARK_BLUE,GREEN':'/assets/wildcard_wildgreendarkblue.PNG','GREEN,RAILROAD':'/assets/wildcard_wildgreenrailroad.PNG','BROWN,LIGHT_BLUE':'/assets/wildcard_wildlightbluebrown.PNG','LIGHT_BLUE,RAILROAD':'/assets/wildcard_wildlightbluerailroad.PNG','ORANGE,PINK':'/assets/wildcard_wildorangepink.PNG','RAILROAD,UTILITY':'/assets/wildcard_wildutilityrailroad.PNG','RED,YELLOW':'/assets/wildcard_wildyellowred.PNG'};return m[s]||m['ALL']}
+    if(c.type==='ACTION'){const m={PASS_GO:'passgo',BIRTHDAY:'birthday',DEBT_COLLECTOR:'debtcollector',SLY_DEAL:'slydeal',FORCED_DEAL:'forceddeal',DEAL_BREAKER:'dealbreaker',HOUSE:'house',HOTEL:'hotel',JUST_SAY_NO:'justsayno',DOUBLE_RENT:'double'};return`/assets/${m[c.actionType]||'passgo'}.PNG`}
+  }catch(e){}return'';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monopoly Deal - Board View</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Roboto,sans-serif;background:linear-gradient(135deg,#1a472a 0%,#2d5a3d 100%);min-height:100vh;color:#fff;overflow:hidden}
+.join-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh}
+.join-screen h1{font-size:3em;margin-bottom:30px;text-shadow:3px 3px 6px rgba(0,0,0,0.4)}
+.join-screen input{padding:20px;font-size:24px;border:none;border-radius:10px;margin:15px;width:300px;text-align:center;text-transform:uppercase}
+.join-screen button{padding:20px 50px;font-size:24px;border:none;border-radius:10px;cursor:pointer;background:#4CAF50;color:white;font-weight:bold;margin-top:20px}
+.join-screen button:hover{background:#45a049}
+.board{display:none;height:100vh;padding:20px}
+.board.active{display:block}
+.header{display:flex;justify-content:space-between;align-items:center;padding:15px 25px;background:rgba(0,0,0,0.4);border-radius:15px;margin-bottom:20px}
+.room-code{font-size:2em;font-weight:bold;letter-spacing:8px;color:#ffd700}
+.turn-info{font-size:1.8em;font-weight:bold}
+.turn-info.active{color:#4CAF50;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.7}}
+.plays-left{font-size:1.2em;color:#ffd700}
+.main-content{display:grid;grid-template-columns:1fr 300px;gap:20px;height:calc(100vh - 140px)}
+.players-area{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:15px;align-content:start}
+.player-card{background:rgba(0,0,0,0.3);border-radius:15px;padding:20px;transition:all 0.3s}
+.player-card.current{border:3px solid #ffd700;box-shadow:0 0 20px rgba(255,215,0,0.4)}
+.player-card.winner{border:3px solid #4CAF50;box-shadow:0 0 30px rgba(76,175,80,0.6);animation:winPulse 1s infinite}
+@keyframes winPulse{0%,100%{box-shadow:0 0 30px rgba(76,175,80,0.6)}50%{box-shadow:0 0 50px rgba(76,175,80,0.9)}}
+.player-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;padding-bottom:10px;border-bottom:2px solid rgba(255,255,255,0.2)}
+.player-name{font-size:1.5em;font-weight:bold}
+.player-stats{display:flex;gap:20px;font-size:1.1em}
+.stat{display:flex;align-items:center;gap:5px}
+.stat-icon{font-size:1.3em}
+.sets-count{font-size:1.4em;padding:8px 15px;background:rgba(255,215,0,0.2);border-radius:8px}
+.sets-count.winning{background:rgba(76,175,80,0.4);color:#4CAF50}
+.properties-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:15px}
+.prop-set{background:rgba(255,255,255,0.1);border-radius:10px;padding:10px;min-width:120px}
+.prop-set.complete{box-shadow:0 0 10px gold}
+.prop-header{padding:6px 12px;border-radius:6px;font-weight:bold;font-size:13px;margin-bottom:8px;text-align:center;text-shadow:1px 1px 2px rgba(0,0,0,0.5)}
+.prop-cards{display:flex;gap:4px;justify-content:center}
+.prop-card{width:50px;height:70px;border-radius:5px;background-size:cover;background-position:center;background-color:#444}
+.prop-extras{text-align:center;margin-top:5px;font-size:18px}
+.sidebar{display:flex;flex-direction:column;gap:15px}
+.deck-display{background:rgba(0,0,0,0.4);border-radius:15px;padding:25px;text-align:center}
+.deck-label{font-size:1.2em;margin-bottom:10px}
+.deck-count{font-size:4em;font-weight:bold;color:#4CAF50}
+.last-played-area{background:rgba(0,0,0,0.4);border-radius:15px;padding:20px;text-align:center;flex:1}
+.last-played-label{font-size:1.1em;margin-bottom:15px;color:#aaa}
+.last-card{width:120px;height:170px;border-radius:10px;background-size:cover;background-position:center;margin:0 auto 15px;background-color:#333}
+.last-played-info{font-size:1.1em}
+.action-log{background:rgba(0,0,0,0.4);border-radius:15px;padding:15px;max-height:200px;overflow-y:auto}
+.action-log h3{margin-bottom:10px;font-size:1em;color:#aaa}
+.log-entry{padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.1);font-size:0.95em}
+.pending-action{background:#c0392b;padding:20px;border-radius:15px;text-align:center;font-size:1.3em;font-weight:bold;animation:pendingPulse 1.5s infinite}
+@keyframes pendingPulse{0%,100%{opacity:1}50%{opacity:0.8}}
+.waiting-lobby{text-align:center;padding:50px}
+.waiting-lobby h2{font-size:2em;margin-bottom:20px}
+.lobby-players{display:flex;flex-wrap:wrap;gap:15px;justify-content:center;margin-top:30px}
+.lobby-player{background:rgba(0,0,0,0.3);padding:20px 30px;border-radius:10px;font-size:1.3em}
+.lobby-player.ready{border:2px solid #4CAF50;color:#4CAF50}
+.lobby-player.host::before{content:"👑 "}
+.winner-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;z-index:100}
+.winner-overlay.active{display:flex}
+.winner-content{text-align:center;animation:winnerPop 0.5s ease-out}
+@keyframes winnerPop{0%{transform:scale(0.5);opacity:0}100%{transform:scale(1);opacity:1}}
+.winner-content h1{font-size:4em;margin-bottom:20px;color:#ffd700}
+.winner-content p{font-size:2em;margin-bottom:30px}
+.colors{--brown:#8B4513;--light-blue:#87CEEB;--pink:#FF69B4;--orange:#FFA500;--red:#FF0000;--yellow:#FFD700;--green:#228B22;--dark-blue:#00008B;--railroad:#4B0082;--utility:#808080}
+</style>
+</head>
+<body>
+
+<div class="join-screen" id="joinScreen">
+  <h1>🎴 Monopoly Deal</h1>
+  <p style="font-size:1.3em;margin-bottom:20px">Board View / Spectator Mode</p>
+  <input type="text" id="roomInput" placeholder="ROOM CODE" maxlength="4">
+  <button onclick="joinAsSpectator()">Watch Game</button>
+</div>
+
+<div class="board" id="board">
+  <div class="header">
+    <div class="room-code" id="roomCodeDisplay">----</div>
+    <div>
+      <div class="turn-info" id="turnInfo">Waiting for players...</div>
+      <div class="plays-left" id="playsInfo"></div>
+    </div>
+  </div>
+  
+  <div id="pendingAction" class="pending-action" style="display:none"></div>
+  
+  <div id="lobbyView" class="waiting-lobby">
+    <h2>Waiting for players to join...</h2>
+    <p>Share the room code above!</p>
+    <div class="lobby-players" id="lobbyPlayers"></div>
+  </div>
+  
+  <div id="gameView" class="main-content" style="display:none">
+    <div class="players-area" id="playersArea"></div>
+    <div class="sidebar">
+      <div class="deck-display">
+        <div class="deck-label">DECK</div>
+        <div class="deck-count" id="deckCount">0</div>
+        <div>cards remaining</div>
+      </div>
+      <div class="last-played-area">
+        <div class="last-played-label">LAST PLAYED</div>
+        <div class="last-card" id="lastCard"></div>
+        <div class="last-played-info" id="lastPlayedInfo"></div>
+      </div>
+      <div class="action-log">
+        <h3>Game Log</h3>
+        <div id="actionLog"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="winner-overlay" id="winnerOverlay">
+  <div class="winner-content">
+    <h1>🎉 <span id="winnerName"></span> WINS! 🎉</h1>
+    <p>Congratulations!</p>
+  </div>
+</div>
+
+<script>
+const COLORS = {
+  BROWN: '#8B4513', LIGHT_BLUE: '#87CEEB', PINK: '#FF69B4', ORANGE: '#FFA500',
+  RED: '#FF0000', YELLOW: '#FFD700', GREEN: '#228B22', DARK_BLUE: '#00008B',
+  RAILROAD: '#4B0082', UTILITY: '#808080'
+};
+const SET_SIZES = {BROWN:2,DARK_BLUE:2,UTILITY:2,RAILROAD:4,LIGHT_BLUE:3,PINK:3,ORANGE:3,RED:3,YELLOW:3,GREEN:3};
+
+let ws, state = null, roomCode = '';
+
+function joinAsSpectator() {
+  roomCode = document.getElementById('roomInput').value.trim().toUpperCase();
+  if (!roomCode || roomCode.length !== 4) {
+    alert('Enter a valid 4-letter room code');
+    return;
+  }
+  connect();
+}
+
+function connect() {
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(protocol + '//' + location.host);
+  
+  ws.onopen = () => {
+    console.log('WebSocket connected, joining room:', roomCode);
+    ws.send(JSON.stringify({ type: 'spectate', code: roomCode }));
+  };
+  
+  ws.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    console.log('Received:', data.type, data);
+    
+    if (data.type === 'error') {
+      // Show error on screen
+      document.getElementById('lobbyView').style.display = 'block';
+      document.getElementById('gameView').style.display = 'none';
+      document.getElementById('lobbyView').innerHTML = `
+        <h2 style="color:#f88">⚠️ ${data.message}</h2>
+        <p style="margin:20px 0">The game may have ended or the server restarted.</p>
+        <button onclick="location.reload()">Try Again</button>
+        <button onclick="location.href='/'">Back to Home</button>
+      `;
+      return;
+    }
+    
+    if (data.type === 'spectating') {
+      document.getElementById('joinScreen').style.display = 'none';
+      document.getElementById('board').classList.add('active');
+      document.getElementById('roomCodeDisplay').textContent = roomCode;
+    }
+    
+    if (data.type === 'state') {
+      state = data.public;
+      // Check for empty/invalid state
+      if (!state || !state.playerOrder || state.playerOrder.length === 0) {
+        console.log('Invalid state received:', state);
+        document.getElementById('lobbyView').style.display = 'block';
+        document.getElementById('gameView').style.display = 'none';
+        document.getElementById('lobbyView').innerHTML = `
+          <h2 style="color:#f88">⚠️ Game Not Found</h2>
+          <p style="margin:20px 0">The game may have ended or the server restarted.</p>
+          <button onclick="location.reload()">Reconnect</button>
+        `;
+        return;
+      }
+      render();
+    }
+  };
+  
+  ws.onclose = () => {
+    console.log('WebSocket closed, reconnecting...');
+    setTimeout(connect, 3000);
+  };
+  
+  ws.onerror = (err) => {
+    console.error('WebSocket error:', err);
+  };
+}
+
+function render() {
+  if (!state) return;
+  
+  document.getElementById('roomCodeDisplay').textContent = roomCode;
+  
+  // Winner check
+  if (state.state === 'gameover' && state.winner) {
+    document.getElementById('winnerName').textContent = state.winner;
+    document.getElementById('winnerOverlay').classList.add('active');
+  } else {
+    document.getElementById('winnerOverlay').classList.remove('active');
+  }
+  
+  // Lobby vs Game view
+  if (state.state === 'lobby') {
+    document.getElementById('lobbyView').style.display = 'block';
+    document.getElementById('gameView').style.display = 'none';
+    renderLobby();
+  } else {
+    document.getElementById('lobbyView').style.display = 'none';
+    document.getElementById('gameView').style.display = 'grid';
+    renderGame();
+  }
+}
+
+function renderLobby() {
+  const div = document.getElementById('lobbyPlayers');
+  div.innerHTML = '';
+  
+  state.playerOrder.forEach(pid => {
+    const p = state.players[pid];
+    const el = document.createElement('div');
+    el.className = 'lobby-player' + (p.ready ? ' ready' : '') + (p.isHost ? ' host' : '');
+    el.textContent = p.name + (p.ready ? ' ✓' : '');
+    div.appendChild(el);
+  });
+}
+
+function renderGame() {
+  // Turn info
+  const turnInfo = document.getElementById('turnInfo');
+  turnInfo.textContent = state.currentPlayerName + "'s Turn";
+  turnInfo.classList.toggle('active', true);
+  
+  document.getElementById('playsInfo').textContent = (3 - state.cardsPlayed) + ' plays remaining';
+  
+  // Pending action
+  const pending = document.getElementById('pendingAction');
+  if (state.pendingAction) {
+    const t = state.pendingAction.type;
+    const from = state.players[state.pendingAction.from]?.name || 'Someone';
+    if (t === 'RENT') pending.textContent = `💰 ${from} charging $${state.pendingAction.amount}M RENT!`;
+    else if (t === 'BIRTHDAY') pending.textContent = `🎂 ${from}: IT'S MY BIRTHDAY! Pay $${state.pendingAction.amount}M`;
+    else if (t === 'DEBT') pending.textContent = `💳 ${from} collecting $${state.pendingAction.amount}M DEBT`;
+    else if (t === 'DEAL_BREAKER') pending.textContent = `💥 ${from} using DEAL BREAKER!`;
+    else if (t === 'SLY_DEAL') pending.textContent = `🤫 ${from} using SLY DEAL!`;
+    else if (t === 'FORCED_DEAL') pending.textContent = `🔄 ${from} using FORCED DEAL!`;
+    else pending.textContent = t;
+    pending.style.display = 'block';
+  } else {
+    pending.style.display = 'none';
+  }
+  
+  // Players
+  const area = document.getElementById('playersArea');
+  area.innerHTML = '';
+  
+  console.log('Rendering players:', state.playerOrder, state.players);
+  
+  state.playerOrder.forEach(pid => {
+    const p = state.players[pid];
+    if (!p) {
+      console.log('Missing player data for:', pid);
+      return;
+    }
+    console.log('Rendering player:', p.name);
+    const isCurrent = pid === state.currentPlayer;
+    const isWinner = state.winner === p.name;
+    
+    const card = document.createElement('div');
+    card.className = 'player-card' + (isCurrent ? ' current' : '') + (isWinner ? ' winner' : '');
+    
+    let propsHtml = '';
+    for (const color in p.properties) {
+      const prop = p.properties[color];
+      const setSize = SET_SIZES[color] || 3;
+      const complete = prop.count >= setSize;
+      
+      let cardsHtml = '';
+      if (prop.cards) {
+        prop.cards.forEach(c => {
+          cardsHtml += `<div class="prop-card" style="background-image:url('${getCardImg(c)}')"></div>`;
+        });
+      } else {
+        for (let i = 0; i < prop.count; i++) {
+          cardsHtml += `<div class="prop-card" style="background:${COLORS[color]}"></div>`;
+        }
+      }
+      
+      let extras = '';
+      if (prop.house) extras += '🏠';
+      if (prop.hotel) extras += '🏨';
+      
+      propsHtml += `
+        <div class="prop-set ${complete ? 'complete' : ''}">
+          <div class="prop-header" style="background:${COLORS[color]}">${color.replace('_', ' ')}</div>
+          <div class="prop-cards">${cardsHtml}</div>
+          ${extras ? `<div class="prop-extras">${extras}</div>` : ''}
+        </div>
+      `;
+    }
+    
+    card.innerHTML = `
+      <div class="player-header">
+        <div class="player-name">${isCurrent ? '▶ ' : ''}${p.name}</div>
+        <div class="sets-count ${p.completeSets >= 2 ? 'winning' : ''}">${p.completeSets}/3 Sets</div>
+      </div>
+      <div class="player-stats">
+        <div class="stat"><span class="stat-icon">🃏</span> ${p.handCount} cards</div>
+        <div class="stat"><span class="stat-icon">💵</span> $${p.bankValue}M</div>
+      </div>
+      <div class="properties-grid">${propsHtml || '<div style="color:#888;padding:20px">No properties yet</div>'}</div>
+    `;
+    
+    area.appendChild(card);
+  });
+  
+  // Deck
+  document.getElementById('deckCount').textContent = state.deckCount;
+  
+  // Last played
+  if (state.lastPlayedCard) {
+    document.getElementById('lastCard').style.backgroundImage = `url('${getCardImg(state.lastPlayedCard)}')`;
+    const action = state.lastPlayedType === 'bank' ? 'banked' : state.lastPlayedType === 'discarded' ? 'discarded' : 'played';
+    document.getElementById('lastPlayedInfo').textContent = `${state.lastPlayedBy} ${action}`;
+  }
+  
+  // Action log
+  const log = document.getElementById('actionLog');
+  log.innerHTML = state.actionLog.slice(-10).map(l => `<div class="log-entry">${l}</div>`).join('');
+}
+
+function getCardImg(c) {
+  if (!c) return '';
+  try {
+    if (c.type === 'MONEY') return `/assets/Assets_${c.value}MILLION.PNG`;
+    if (c.type === 'PROPERTY' && c.img) return `/assets/${c.img}.PNG`;
+    if (c.type === 'RENT' && c.colors) {
+      const s = [...c.colors].sort().join(',');
+      const m = {'ALL':'/assets/rent_rentwild.PNG','DARK_BLUE,GREEN':'/assets/rent_rentdarkbluegreen.PNG','BROWN,LIGHT_BLUE':'/assets/rent_rentlightbluebrown.PNG','ORANGE,PINK':'/assets/rent_rentpinkorange.PNG','RAILROAD,UTILITY':'/assets/rent_rentutilityrailroad.PNG','RED,YELLOW':'/assets/rent_rentyellowred.PNG'};
+      return m[s] || m['ALL'];
+    }
+    if (c.type === 'WILDCARD' && c.colors) {
+      const s = [...c.colors].sort().join(',');
+      const m = {'ALL':'/assets/wildcard_wild.PNG','DARK_BLUE,GREEN':'/assets/wildcard_wildgreendarkblue.PNG','GREEN,RAILROAD':'/assets/wildcard_wildgreenrailroad.PNG','BROWN,LIGHT_BLUE':'/assets/wildcard_wildlightbluebrown.PNG','LIGHT_BLUE,RAILROAD':'/assets/wildcard_wildlightbluerailroad.PNG','ORANGE,PINK':'/assets/wildcard_wildorangepink.PNG','RAILROAD,UTILITY':'/assets/wildcard_wildutilityrailroad.PNG','RED,YELLOW':'/assets/wildcard_wildyellowred.PNG'};
+      return m[s] || m['ALL'];
+    }
+    if (c.type === 'ACTION') {
+      const m = {PASS_GO:'passgo',BIRTHDAY:'birthday',DEBT_COLLECTOR:'debtcollector',SLY_DEAL:'slydeal',FORCED_DEAL:'forceddeal',DEAL_BREAKER:'dealbreaker',HOUSE:'house',HOTEL:'hotel',JUST_SAY_NO:'justsayno',DOUBLE_RENT:'double'};
+      return `/assets/${m[c.actionType] || 'passgo'}.PNG`;
+    }
+  } catch(e) {
+    console.error('getCardImg error:', e, c);
+  }
+  return '';
+  }
+  return '';
+}
+</script>
+</body>
+</html>
