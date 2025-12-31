@@ -1118,6 +1118,18 @@ function broadcastRoom(room) {
       }));
     }
   });
+  
+  // Broadcast to spectators
+  if (room.spectators) {
+    room.spectators.forEach(ws => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'state',
+          public: publicState
+        }));
+      }
+    });
+  }
 }
 
 function resetGame(room) {
@@ -1164,6 +1176,22 @@ wss.on('connection', (ws) => {
             ws.send(JSON.stringify({ type: 'joined', ...result }));
             const room = rooms.get(result.code);
             broadcastRoom(room);
+          }
+          break;
+        }
+        
+        case 'spectate': {
+          const room = rooms.get(data.code?.toUpperCase());
+          if (!room) {
+            ws.send(JSON.stringify({ type: 'error', message: 'Room not found' }));
+          } else {
+            if (!room.spectators) room.spectators = [];
+            room.spectators.push(ws);
+            ws.isSpectator = true;
+            ws.roomCode = room.code;
+            ws.send(JSON.stringify({ type: 'spectating', code: room.code }));
+            // Send current state immediately
+            ws.send(JSON.stringify({ type: 'state', public: getPublicState(room) }));
           }
           break;
         }
@@ -1280,15 +1308,22 @@ wss.on('connection', (ws) => {
   });
   
   ws.on('close', () => {
-    if (ws.roomCode && ws.playerId) {
+    if (ws.roomCode) {
       const room = rooms.get(ws.roomCode);
       if (room) {
-        const player = room.players.get(ws.playerId);
-        if (player) {
-          // Mark as disconnected but don't remove
-          player.ws = null;
+        // Handle spectator disconnect
+        if (ws.isSpectator && room.spectators) {
+          const idx = room.spectators.indexOf(ws);
+          if (idx !== -1) room.spectators.splice(idx, 1);
         }
-        broadcastRoom(room);
+        // Handle player disconnect
+        if (ws.playerId) {
+          const player = room.players.get(ws.playerId);
+          if (player) {
+            player.ws = null;
+          }
+          broadcastRoom(room);
+        }
       }
     }
   });
