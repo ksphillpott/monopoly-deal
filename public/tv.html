@@ -534,7 +534,6 @@ body {
   <div class="status-area">
     <div class="status-text" id="statusText">Creating game...</div>
     <div class="players-chips" id="playersChips"></div>
-    <button class="start-btn" id="startBtn" style="display:none" onclick="startGame()">START GAME</button>
   </div>
 </div>
 
@@ -618,10 +617,14 @@ function renderLobby(){
     const chip=document.createElement('div');chip.className='player-chip'+(p.ready?' ready':'');
     chip.innerHTML=`<span class="dot"></span><span>${p.name}</span>`;chips.appendChild(chip);if(!p.ready)allReady=false});
   document.getElementById('statusText').textContent=count===0?'Waiting for players to join...':`${count} player${count>1?'s':''} in lobby`;
-  document.getElementById('startBtn').style.display=(count>=2&&allReady)?'block':'none';
+  
+  // Auto-start when 2+ players and all ready
+  if(count>=2&&allReady){
+    document.getElementById('statusText').textContent='Starting game...';
+    send({type:'start'});
+  }
 }
 
-function startGame(){send({type:'start'})}
 function send(d){if(ws&&ws.readyState===1)ws.send(JSON.stringify(d))}
 
 function renderGame(){
